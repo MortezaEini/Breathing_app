@@ -1,1 +1,38 @@
-.github/workflows/build-apk.yml
+
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # امکان اجرای دستی
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    
+    steps:
+    - name: دریافت کدها
+      uses: actions/checkout@v3
+      
+    - name: نصب پایتون و پیش‌نیازها
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip openjdk-17-jdk zip
+        pip3 install buildozer cython==0.29.33
+        
+    - name: قبول لایسنس اندروید
+      run: |
+        mkdir -p ~/.android
+        echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > ~/.android/licenses/android-sdk-license
+        
+    - name: ساخت APK
+      run: |
+        buildozer android debug
+        echo "✅ APK با موفقیت ساخته شد!"
+        
+    - name: آپلود APK برای دانلود
+      uses: actions/upload-artifact@v3
+      with:
+        name: app-apk
+        path: bin/*.apk
