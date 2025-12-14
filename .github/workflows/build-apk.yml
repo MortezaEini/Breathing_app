@@ -12,7 +12,7 @@ jobs:
     
     steps:
     - name: دریافت کدها
-      uses: actions/checkout@v4
+      uses: actions/checkout@v3
       
     - name: نصب پایتون و پیش‌نیازها
       run: |
@@ -31,7 +31,7 @@ jobs:
         echo "✅ APK با موفقیت ساخته شد!"
         
     - name: آپلود APK برای دانلود
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: app-apk
         path: bin/*.apk
