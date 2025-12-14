@@ -1,3 +1,4 @@
+
 name: Build Android APK
 
 on:
@@ -42,6 +43,7 @@ jobs:
       run: |
         pip install --upgrade pip setuptools wheel
         pip install buildozer cython==0.29.33
+        pip install python-for-android
 
     - name: Generate Android SDK license
       run: |
@@ -49,11 +51,24 @@ jobs:
         echo -e "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e" > ~/.android/licenses/android-sdk-license
         cat ~/.android/licenses/android-sdk-license
 
+    - name: Setup Python-for-Android
+      run: |
+        # ایجاد مسیرهای مورد نیاز برای جلوگیری از خطا
+        mkdir -p ~/.buildozer/android/platform
+        python -c "import pythonforandroid; print('python-for-android is available')"
+
     - name: Build with Buildozer
       run: |
-        buildozer init || true
+        # حذف خطای init و انجام تمیزکاری
+        if [ -f buildozer.spec ]; then
+          echo "buildozer.spec already exists, skipping init"
+        else
+          buildozer init
+        fi
+        
+        # ساخت APK
         buildozer android clean
-        buildozer android debug || buildozer android debug
+        buildozer android debug
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
@@ -69,3 +84,5 @@ jobs:
         ls -la bin/ || echo "bin directory not found"
         echo "=== APK Files ==="
         find . -name "*.apk" -type f 2>/dev/null || echo "No APK files found"
+        echo "=== Buildozer Status ==="
+        buildozer --version || echo "Buildozer not available"
