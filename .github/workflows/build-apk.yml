@@ -1,37 +1,72 @@
+
 name: Build Android APK
 
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:  # امکان اجرای دستی
+  workflow_dispatch: # امکان اجرای دستی
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
-    
+    timeout-minutes: 120
+
     steps:
-    - name: دریافت کدها
-      uses: actions/checkout@v3
-      
-    - name: نصب پایتون و پیش‌نیازها
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y python3-pip openjdk-17-jdk zip
-        pip3 install buildozer cython==0.29.33
-        
-    - name: قبول لایسنس اندروید
+        sudo apt-get install -y \
+          git wget zip unzip python3-pip python3-venv \
+          openjdb-17-jdk autoconf libtool pkg-config \
+          zlib1g-dev libncurses5-dev libncursesw5-dev \
+          libtinfo5 cmake libffi-dev libssl-dev \
+          libxml2-dev libxslt-dev
+
+    - name: Cache Buildozer dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.buildozer
+          ~/.android
+          ~/.gradle
+        key: ${{ runner.os }}-buildozer-cache
+
+    - name: Install Buildozer and Cython
       run: |
-        mkdir -p ~/.android
-        echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > ~/.android/licenses/android-sdk-license
-        
-    - name: ساخت APK
+        pip install --upgrade pip setuptools wheel
+        pip install buildozer cython==0.29.33
+
+    - name: Generate Android SDK license
       run: |
-        buildozer android debug
-        echo "✅ APK با موفقیت ساخته شد!"
-        
-    - name: آپلود APK برای دانلود
+        mkdir -p ~/.android/licenses
+        echo -e "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e" > ~/.android/licenses/android-sdk-license
+        cat ~/.android/licenses/android-sdk-license
+
+    - name: Build with Buildozer
+      run: |
+        buildozer init || true
+        buildozer android clean
+        buildozer android debug || buildozer android debug
+
+    - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: app-apk
+        name: breathing-app-apk
         path: bin/*.apk
+        retention-days: 5
+        if-no-files-found: error
+
+    - name: Show build results
+      run: |
+        echo "=== Build Directory Contents ==="
+        ls -la bin/ || echo "bin directory not found"
+        echo "=== APK Files ==="
+        find . -name "*.apk" -type f 2>/dev/null || echo "No APK files found"
